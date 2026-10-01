@@ -6,7 +6,7 @@ class SnakeGame:
     def __init__(self, root, on_timeout):
         self.root = root
         self.window = tk.Toplevel(root)
-        self.window.title("GTA6 小彩蛋 - 贪吃蛇")
+        self.window.title("小彩蛋-贪吃蛇")
         self.window.geometry("420x440")
         self.window.resizable(False, False)
         self.window.configure(bg="black")
@@ -24,7 +24,12 @@ class SnakeGame:
         self.start_time = time.time()
 
         self.window.bind("<Key>", self.on_key)
-        self.window.focus_set()
+        self.canvas.bind("<Key>", self.on_key)
+        self.canvas.focus_set()
+        self.window.focus_force()
+        self.window.lift()
+        self.window.attributes('-topmost', True)
+        self.window.after(100, lambda: self.window.attributes('-topmost', False))
 
         self.draw()
         self.game_loop()
