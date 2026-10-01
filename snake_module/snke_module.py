@@ -6,7 +6,7 @@ class SnakeGame:
     def __init__(self, root, on_timeout):
         self.root = root
         self.window = tk.Toplevel(root)
-        self.window.title("GTA6 迷你游戏 - 贪吃蛇")
+        self.window.title("GTA6 小彩蛋 - 贪吃蛇")
         self.window.geometry("420x440")
         self.window.resizable(False, False)
         self.window.configure(bg="black")
