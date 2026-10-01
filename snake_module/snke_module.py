@@ -1,0 +1,95 @@
+import tkinter as tk
+import random
+import time
+
+class SnakeGame:
+    def __init__(self, root, on_timeout):
+        self.root = root
+        self.window = tk.Toplevel(root)
+        self.window.title("小彩蛋-贪吃蛇")
+        self.window.geometry("420x440")
+        self.window.resizable(False, False)
+        self.window.configure(bg="black")
+
+        self.canvas = tk.Canvas(self.window, width=400, height=400, bg="black", highlightthickness=0)
+        self.canvas.pack(pady=10)
+
+        self.snake = [(200, 200), (180, 200), (160, 200)]
+        self.direction = "Right"
+        self.next_direction = "Right"
+        self.food = self.spawn_food()
+        self.score = 0
+        self.game_over = False
+        self.on_timeout = on_timeout
+        self.start_time = time.time()
+
+        self.window.bind("<Key>", self.on_key)
+        self.window.focus_set()
+
+        self.draw()
+        self.game_loop()
+        self.check_timeout()
+
+    def spawn_food(self):
+        while True:
+            x = random.randint(0, 19) * 20
+            y = random.randint(0, 19) * 20
+            if (x, y) not in self.snake:
+                return (x, y)
+
+    def on_key(self, event):
+        key = event.keysym
+        if key == "Up" and self.direction != "Down":
+            self.next_direction = "Up"
+        elif key == "Down" and self.direction != "Up":
+            self.next_direction = "Down"
+        elif key == "Left" and self.direction != "Right":
+            self.next_direction = "Left"
+        elif key == "Right" and self.direction != "Left":
+            self.next_direction = "Right"
+
+    def draw(self):
+        self.canvas.delete("all")
+        for x, y in self.snake:
+            self.canvas.create_rectangle(x, y, x + 20, y + 20, fill="#00FF00", outline="")
+        fx, fy = self.food
+        self.canvas.create_oval(fx, fy, fx + 20, fy + 20, fill="#FF0000", outline="")
+        self.canvas.create_text(50, 20, text=f"Score: {self.score}", fill="white", anchor="w", font=("Consolas", 12))
+
+    def game_loop(self):
+        if self.game_over:
+            return
+        self.direction = self.next_direction
+        head_x, head_y = self.snake[0]
+        if self.direction == "Up":
+            head_y -= 20
+        elif self.direction == "Down":
+            head_y += 20
+        elif self.direction == "Left":
+            head_x -= 20
+        elif self.direction == "Right":
+            head_x += 20
+
+        new_head = (head_x, head_y)
+
+        if (head_x < 0 or head_x >= 400 or head_y < 0 or head_y >= 400 or new_head in self.snake):
+            self.game_over = True
+            self.canvas.create_text(200, 200, text="GAME OVER", fill="red", font=("Arial", 24, "bold"))
+            return
+
+        self.snake.insert(0, new_head)
+        if new_head == self.food:
+            self.score += 10
+            self.food = self.spawn_food()
+        else:
+            self.snake.pop()
+
+        self.draw()
+        self.window.after(150, self.game_loop)
+
+    def check_timeout(self):
+        if time.time() - self.start_time >= 60:
+            self.window.destroy()
+            self.on_timeout()
+            return
+        self.window.after(1000, self.check_timeout)
