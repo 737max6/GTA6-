@@ -22,6 +22,9 @@ class SnakeGame:
         self.game_over = False
         self.on_timeout = on_timeout
         self.start_time = time.time()
+        self.timeout_called = False
+
+        self.window.protocol("WM_DELETE_WINDOW", self._on_close)
 
         self.window.bind("<Key>", self.on_key)
         self.canvas.bind("<Key>", self.on_key)
@@ -34,6 +37,19 @@ class SnakeGame:
         self.draw()
         self.game_loop()
         self.check_timeout()
+
+    def _trigger_timeout(self):
+        if self.timeout_called:
+            return
+        self.timeout_called = True
+        try:
+            self.window.destroy()
+        except Exception:
+            pass
+        self.on_timeout()
+
+    def _on_close(self):
+        self._trigger_timeout()
 
     def spawn_food(self):
         while True:
@@ -64,7 +80,7 @@ class SnakeGame:
         self.canvas.create_text(350, 20, text=f"Time: {remaining}s", fill="yellow", anchor="e", font=("Consolas", 12))
 
     def game_loop(self):
-        if self.game_over:
+        if self.game_over or self.timeout_called:
             return
         self.direction = self.next_direction
         head_x, head_y = self.snake[0]
@@ -82,7 +98,7 @@ class SnakeGame:
         if (head_x < 0 or head_x >= 400 or head_y < 0 or head_y >= 400 or new_head in self.snake):
             self.game_over = True
             self.canvas.create_text(200, 200, text="GAME OVER", fill="red", font=("Arial", 24, "bold"))
-            self.window.after(3000, self.on_timeout)
+            self.window.after(3000, self._trigger_timeout)
             return
 
         self.snake.insert(0, new_head)
@@ -96,8 +112,9 @@ class SnakeGame:
         self.window.after(150, self.game_loop)
 
     def check_timeout(self):
+        if self.timeout_called:
+            return
         if time.time() - self.start_time >= 60:
-            self.window.destroy()
-            self.on_timeout()
+            self._trigger_timeout()
             return
         self.window.after(1000, self.check_timeout)
