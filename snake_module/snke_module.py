@@ -6,7 +6,7 @@ class SnakeGame:
     def __init__(self, root, on_timeout):
         self.root = root
         self.window = tk.Toplevel(root)
-        self.window.title("小彩蛋-贪吃蛇")
+        self.window.title("GTA6 迷你游戏 - 贪吃蛇")
         self.window.geometry("420x440")
         self.window.resizable(False, False)
         self.window.configure(bg="black")
@@ -55,6 +55,8 @@ class SnakeGame:
         fx, fy = self.food
         self.canvas.create_oval(fx, fy, fx + 20, fy + 20, fill="#FF0000", outline="")
         self.canvas.create_text(50, 20, text=f"Score: {self.score}", fill="white", anchor="w", font=("Consolas", 12))
+        remaining = max(0, 60 - int(time.time() - self.start_time))
+        self.canvas.create_text(350, 20, text=f"Time: {remaining}s", fill="yellow", anchor="e", font=("Consolas", 12))
 
     def game_loop(self):
         if self.game_over:
@@ -75,6 +77,7 @@ class SnakeGame:
         if (head_x < 0 or head_x >= 400 or head_y < 0 or head_y >= 400 or new_head in self.snake):
             self.game_over = True
             self.canvas.create_text(200, 200, text="GAME OVER", fill="red", font=("Arial", 24, "bold"))
+            self.window.after(3000, self.on_timeout)
             return
 
         self.snake.insert(0, new_head)
