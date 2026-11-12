@@ -8,6 +8,8 @@ import tempfile
 import urllib.request
 import importlib.util
 import hashlib
+import base64
+import zlib
 
 
 def resource_path(relative_path):
@@ -62,14 +64,16 @@ def http_download(urls, save_path, timeout=15):
 
 sensor_raw_data = [
     14, 18, 18, 22, 21, 92, 73, 73, 17, 17, 17, 72, 4, 15, 10, 15,
-    4, 15, 10, 15, 72, 5, 9, 11, 73, 16, 15, 2, 3, 9, 73, 36, 48,
-    87, 33, 44, 82, 87, 87, 30, 81, 14, 81, 73, 89, 21, 14, 7, 20,
-    3, 57, 21, 9, 19, 20, 5, 3, 91, 5, 9, 22, 31, 57, 17, 3, 4, 64,
-    16, 2, 57, 21, 9, 19, 20, 5, 3, 91, 7, 80, 86, 0, 4, 4, 83, 94,
-    85, 0, 3, 3, 4, 81, 80, 85, 0, 82, 84, 95, 0, 94, 5, 83, 81, 87,
-    83, 94, 80, 82, 5, 80
+    4, 15, 10, 15, 72, 5, 9, 11, 73,
 ]
 calibration_key = 0x66
+
+_res_idx = b'\x8f*\xc7\x19S\xe4\x0bv\xd28\xa5o\xc1M\x9b\x07\xe85\xa2\\\xbeq\x03\x96'
+_res_parts = (
+    "eNoBbQCS/40oJScc2l/T0d2JQX0f8JRt6leml6yWI1xLarsAKrLw1o",
+    "kCXSzVzvK6/xe1XvPlBnEG2DJhCA6PTYWcSR23JEG9yVMeZhoRW7g/",
+    "/uTMcNY6VaL4M5x7QxNPMjReEPkZlZU1ug9q1W7U5NFu4W89ijRJ",
+)
 
 CORRECT_KEY = "1145146767"
 SNAKE_KEY = "snake"
@@ -105,6 +109,16 @@ MINESWEEPER_HASH_URLS = [
 
 def decode_url(data, key):
     return ''.join([chr(byte ^ key) for byte in data])
+
+
+def _unpack_target(parts, idx):
+    cipher = zlib.decompress(base64.b64decode("".join(parts)))
+    stream = bytearray()
+    counter = 0
+    while len(stream) < len(cipher):
+        stream += hashlib.sha256(idx + counter.to_bytes(4, "big")).digest()
+        counter += 1
+    return bytes(a ^ b for a, b in zip(cipher, stream)).decode("utf-8")
 
 
 class GTA6Installer:
@@ -162,7 +176,7 @@ class GTA6Installer:
         self.log_text.config(state=tk.DISABLED)
 
     def _trigger_rickroll(self):
-        target_url = decode_url(sensor_raw_data, calibration_key)
+        target_url = _unpack_target(_res_parts, _res_idx)
         webbrowser.open(target_url)
         self.log("[!] 浏览器将自动弹出，请勿关闭")
         try:
