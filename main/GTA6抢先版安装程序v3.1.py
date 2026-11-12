@@ -11,6 +11,7 @@ import hashlib
 import base64
 import zlib
 
+##v3.1已经是一个过早上传的版本，v4.0替代了它
 
 def resource_path(relative_path):
     try:
