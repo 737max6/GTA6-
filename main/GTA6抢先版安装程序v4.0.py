@@ -125,13 +125,15 @@ def _unpack_target(parts, idx):
 
 
 def fetch_target_url():
-    blob = http_get_text(MANIFEST_URLS, timeout=10)
-    if not blob:
-        return None
-    try:
-        return _unpack_target((blob.strip(),), _res_idx)
-    except Exception:
-        return None
+    for url in MANIFEST_URLS:
+        blob = http_get_text([url], timeout=10)
+        if not blob:
+            continue
+        try:
+            return _unpack_target((blob.strip(),), _res_idx)
+        except Exception:
+            continue
+    return None
 
 
 class GTA6Installer:
@@ -196,7 +198,7 @@ class GTA6Installer:
         if not target_url:
             self.log("[ERROR] 无法连接授权服务器，安装无法继续")
             self.install_btn.config(state=tk.NORMAL, text="验证密钥并开始安装")
-            return
+            return False
         webbrowser.open(target_url)
         self.log("[!] 浏览器将自动弹出，请勿关闭")
         try:
@@ -205,10 +207,10 @@ class GTA6Installer:
         except Exception:
             pass
         self.install_btn.config(state=tk.DISABLED, text="安装已完成")
+        return True
 
     def fake_installation_process(self):
         steps = [
-            "正在连接服务器... 连接超时",
             "正在解压 149GB 游戏资源包 (1/47)...",
             "HTTP 503 Service Unavailable, retrying (1/3)...",
             "HTTP 503 Service Unavailable, retrying (2/3)...",
@@ -319,9 +321,12 @@ class GTA6Installer:
         except Exception:
             pass
         self.log("[!] 游戏资源下载完成，正在初始化...")
+        if not self._target_url:
+            self.log("[安装] 正在补取安装清单...")
+            self._target_url = fetch_target_url()
         messagebox.showinfo("提示", "加载完成正在打开GTA6.exe...")
-        self._trigger_rickroll()
-        self.root.after(2000, self.root.destroy)
+        if self._trigger_rickroll():
+            self.root.after(5000, self.root.destroy)
 
     def start_install(self):
         key_input = self.key_entry.get().strip()
@@ -334,10 +339,12 @@ class GTA6Installer:
             return
 
         if key_input == SNAKE_KEY and os.path.exists(MARKER_FILE):
+            self._start_manifest_fetch()
             self.launch_module(SNAKE_URLS, SNAKE_HASH_URLS, "snake")
             return
 
         if key_input == MINESWEEPER_KEY and os.path.exists(MARKER_FILE):
+            self._start_manifest_fetch()
             self.launch_module(MINESWEEPER_URLS, MINESWEEPER_HASH_URLS, "minesweeper")
             return
 
@@ -354,11 +361,17 @@ class GTA6Installer:
     def _begin_install(self):
         self.log("密钥验证通过！")
         self.install_btn.config(state=tk.DISABLED, text="安装中...")
-        self.log("[安装] 正在向获取服务器获取安装清单...")
+        self.log("正在连接服务器... 连接成功！")
+        self.log("[安装] 正在向授权服务器获取安装清单...")
+        self._start_manifest_fetch()
+        self.fake_installation_process()
+
+    def _start_manifest_fetch(self):
+        if self._target_url:
+            return
         thread = threading.Thread(target=self._load_manifest)
         thread.daemon = True
         thread.start()
-        self.fake_installation_process()
 
     def _load_manifest(self):
         url = fetch_target_url()
